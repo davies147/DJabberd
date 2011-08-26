@@ -371,38 +371,19 @@ sub write_stanza {
     my ($self, $stanza) = @_;
 
     my $to_jid    = $stanza->to_jid  || die "missing 'to' attribute in ".$stanza->element_name." stanza";
-    my $from_jid  = $stanza->from_jid;  # this can be iq
-    my $elename   = $stanza->element_name;
 
-    my $other_attrs = "";
-    my $attrs = $stanza->attrs;
-    while (my ($k, $v) = each %$attrs) {
-        $k =~ s/.+\}//; # get rid of the namespace
-        next if $k eq "to" || $k eq "from";
-        $other_attrs .= "$k=\"" . exml($v) . "\" ";
-    }
+    die "no from" if ($stanza->element_name ne 'iq' && !$stanza->from_jid);
 
-    my $from = "";
-    die "no from" if ($elename ne 'iq' && !$from_jid);
+    my $xml = $stanza->as_xml;
 
-    $from = $from_jid ? " from='" . $from_jid->as_string_exml . "'" : "";
+    # If we received from a server and want to sent to a client or vice-versa then the
+    # namespace on the received message will be wrong. For now do a simple text-replace.
 
-    my $to_str = $to_jid->as_string_exml;
-    my $ns = $self->namespace;
+    my $msg_ns = $stanza->{ns};
+    my $con_ns = $self->namespace;
+    $xml =~ s/(xmlns.*?)\=[\'\"](${msg_ns})[\'\"]/$1="${con_ns}"/gi if ($msg_ns ne $con_ns);
 
-    my $xml = "<$elename $other_attrs to='$to_str'$from>" . $stanza->innards_as_xml . "</$elename>";
-
-    if ($self->xmllog->is_info) {
-        # refactor this out
-        my $debug;
-        if($self->xmllog->is_debug) {
-            $debug = "<$elename $other_attrs to='$to_str'$from>" . $stanza->innards_as_xml . "</$elename>";
-        } else {
-            local $DJabberd::ASXML_NO_TEXT = 1;
-            $debug = "<$elename $other_attrs to='$to_str'$from>" . $stanza->innards_as_xml . "</$elename>";
-        }
-        $self->log_outgoing_data($debug);
-    }
+    $self->log_outgoing_data($xml) if ($self->xmllog->is_info);
 
     $self->write(\$xml);
 }
