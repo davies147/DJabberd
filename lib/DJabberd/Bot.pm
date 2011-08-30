@@ -49,6 +49,14 @@ sub vhost {
     return $_[0]->{vhost};
 }
 
+sub sasl {
+    return $_[0]->{sasl};
+}
+
+sub stream_error {
+    return;
+}
+
 sub register {
     my ($self, $vhost) = @_;
     my $barejid = DJabberd::JID->new("$self->{nodename}\@" . $vhost->server_name );
