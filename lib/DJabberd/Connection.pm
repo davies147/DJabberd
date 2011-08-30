@@ -374,13 +374,14 @@ sub write_stanza {
 
     die "no from" if ($stanza->element_name ne 'iq' && !$stanza->from_jid);
 
-    my $xml = $stanza->as_xml;
 
     # If we received from a server and want to sent to a client or vice-versa then the
     # namespace on the received message will be wrong. For now do a simple text-replace.
 
     my $msg_ns = $stanza->{ns};
     my $con_ns = $self->namespace;
+    my $xml = $stanza->as_xml(undef, $msg_ns);
+
     $xml =~ s/(xmlns.*?)\=[\'\"](${msg_ns})[\'\"]/$1="${con_ns}"/gi if ($msg_ns ne $con_ns);
 
     $self->log_outgoing_data($xml) if ($self->xmllog->is_info);
